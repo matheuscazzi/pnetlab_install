@@ -75,4 +75,29 @@ else
     echo -e "${RED}Pacote /tmp/pnetlab_6.0.0-100_amd64.deb não encontrado.${NO_COLOR}"
 fi
 
-echo -e "${GREEN}Finalizado com sucesso. Reinicie a máquina caso seja a primeira instalação do PNETLab.${NO_COLOR}"
+# Demais pacotes .deb do PNETLab
+cd /tmp
+wget --content-disposition -q --show-progress "$URL_KERNEL"
+unzip -o /tmp/$KERNEL -d /tmp/pnetlab_kernel && dpkg -i /tmp/pnetlab_kernel/*.deb
+
+wget --content-disposition -q --show-progress "$URL_PRE_DOCKER"
+unzip -o /tmp/pre-docker.zip -d /tmp/pre-docker && dpkg -i /tmp/pre-docker/*.deb
+
+wget --content-disposition -q --show-progress "$URL_PNET_TPM"
+unzip -o /tmp/swtpm-focal.zip -d /tmp/swtpm-focal && dpkg -i /tmp/swtpm-focal/*.deb
+
+for url in "$URL_PNET_DOCKER" "$URL_PNET_SCHEMA" "$URL_PNET_GUACAMOLE" "$URL_PNET_VPC" "$URL_PNET_DYNAMIPS" "$URL_PNET_WIRESHARK" "$URL_PNET_QEMU"; do
+    filename=$(basename "$url")
+    wget -q --show-progress "$url"
+    dpkg -i "/tmp/$filename" || apt --fix-broken install -y
+    sleep 1
+done
+
+fgrep "127.0.1.1 pnetlab.example.com pnetlab" /etc/hosts || echo 127.0.2.1 pnetlab.example.com pnetlab >>/etc/hosts 2>/dev/null
+echo pnetlab >/etc/hostname 2>/dev/null
+
+apt autoremove -y -q
+apt autoclean -y -q
+
+echo -e "${GREEN}Instalação finalizada com sucesso. Reinicie o sistema.${NO_COLOR}"
+echo -e "${GREEN}Credenciais padrão: usuário=root senha=pnet${NO_COLOR}"
