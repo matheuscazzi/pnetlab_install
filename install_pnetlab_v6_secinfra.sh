@@ -48,54 +48,12 @@ grep -Eq 'kvm|none' /tmp/hypervisor && {
 rm /var/lib/dpkg/lock* &>/dev/null
 apt-get install -y ifupdown unzip &>/dev/null
 
-echo -e "${GREEN}Instalando compilador e dependências de build...${NO_COLOR}"
-apt-get install -y build-essential autoconf bison re2c gcc g++ make \
-    libxml2-dev libssl-dev libcurl4-openssl-dev libjpeg-dev libpng-dev libonig-dev \
-    libzip-dev libsqlite3-dev libmysqlclient-dev libfreetype6-dev pkg-config wget unzip || {
-    echo -e "${RED}Erro ao instalar dependências de compilação${NO_COLOR}"
-    exit 1
-}
+echo -e "${GREEN}Instalando PHP 7.4 via PPA Ondrej...${NO_COLOR}"
+add-apt-repository ppa:ondrej/php -y && apt-get update
+apt-get install -y php7.4 php7.4-cli php7.4-fpm php7.4-mysql php7.4-curl     php7.4-xml php7.4-mbstring php7.4-zip php7.4-bcmath php7.4-gd php7.4-soap     libapache2-mod-php7.4 unzip
 
-hash gcc 2>/dev/null || { echo -e "${RED}gcc ainda não está disponível no PATH${NO_COLOR}"; exit 1; }
-hash make 2>/dev/null || { echo -e "${RED}make ainda não está disponível no PATH${NO_COLOR}"; exit 1; }
+update-alternatives --set php /usr/bin/php7.4
 
-export PATH=$PATH:/usr/local/bin:/usr/local/php7.2/bin
+php -v || echo -e "${RED}Erro: PHP 7.4 nao foi instalado corretamente${NO_COLOR}"
 
-echo -e "${GREEN}Compilando PHP 7.2 a partir do código-fonte...${NO_COLOR}"
-cd /usr/local/src
-wget -q https://www.php.net/distributions/php-7.2.34.tar.gz
-rm -rf php-7.2.34 && tar -xzf php-7.2.34.tar.gz
-cd php-7.2.34
-
-./configure --prefix=/usr/local/php7.2 \
-  --with-config-file-path=/usr/local/php7.2/etc \
-  --enable-mbstring \
-  --with-curl \
-  --with-openssl \
-  --with-mysqli \
-  --with-pdo-mysql \
-  --with-zlib \
-  --with-gd \
-  --with-jpeg-dir=/usr/lib \
-  --with-png-dir=/usr/lib \
-  --enable-soap \
-  --enable-bcmath \
-  --enable-opcache \
-  --enable-fpm \
-  --with-freetype-dir=/usr/include/freetype2 \
-  --with-xmlrpc \
-  --with-gettext \
-  --enable-sockets \
-  --enable-sysvshm || {
-    echo -e "${RED}Erro ao configurar o PHP 7.2${NO_COLOR}"
-    exit 1
-}
-
-make -j"$(nproc)" || { echo -e "${RED}Erro ao compilar o PHP${NO_COLOR}"; exit 1; }
-make install || { echo -e "${RED}Erro ao instalar o PHP${NO_COLOR}"; exit 1; }
-
-rm -f /usr/bin/php /usr/bin/php7.2
-ln -s /usr/local/php7.2/bin/php /usr/bin/php7.2
-ln -s /usr/local/php7.2/bin/php /usr/bin/php
-
-php -v || echo -e "${RED}Erro: PHP 7.2 nao foi instalado corretamente${NO_COLOR}"
+# (continua normalmente o restante do script...)
