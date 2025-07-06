@@ -52,6 +52,7 @@ apt-get install -y ifupdown unzip &>/dev/null
 # Remove possíveis restos de PHP antigos
 apt-get purge -y php7.2* php8.*
 
+# Instala PHP 7.4
 echo -e "${GREEN}Instalando PHP 7.4 via PPA Ondrej...${NO_COLOR}"
 add-apt-repository ppa:ondrej/php -y && apt-get update
 apt-get install -y php7.4 php7.4-cli php7.4-fpm php7.4-mysql php7.4-curl \
@@ -61,6 +62,20 @@ apt-get install -y php7.4 php7.4-cli php7.4-fpm php7.4-mysql php7.4-curl \
 update-alternatives --set php /usr/bin/php7.4
 
 php -v || echo -e "${RED}Erro: PHP 7.4 não foi instalado corretamente${NO_COLOR}"
+
+# Instala ionCube Loader
+echo -e "${GREEN}Instalando ionCube Loader...${NO_COLOR}"
+cd /opt
+mkdir -p ioncube && cd ioncube
+wget https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz
+
+tar -xzf ioncube_loaders_lin_x86-64.tar.gz
+PHP_VERSION=7.4
+PHP_EXT_DIR=$(php -i | grep extension_dir | awk '{print $5}')
+cp "ioncube/ioncube_loader_lin_${PHP_VERSION}.so" "$PHP_EXT_DIR"
+echo "zend_extension=${PHP_EXT_DIR}/ioncube_loader_lin_${PHP_VERSION}.so" > "/etc/php/${PHP_VERSION}/apache2/conf.d/00-ioncube.ini"
+a2enmod php7.4
+systemctl restart apache2
 
 # Download do pacote PNETLab e correção da dependência
 cd /tmp
