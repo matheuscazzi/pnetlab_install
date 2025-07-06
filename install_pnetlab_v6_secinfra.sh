@@ -29,17 +29,9 @@ lsb_release -r -s | grep -q 20.04 || {
     exit 1
 }
 
-uname -a | grep -q -- "-azure " && {
-    ls -l /dev/disk/by-id/ | grep -q sdc && {
-        echo o; echo n; echo p; echo 1; echo; echo; echo w
-    } | sudo fdisk /dev/sdc && {
-        mke2fs -F /dev/sdc1
-        echo "/dev/sdc1 /opt ext4 defaults,discard 0 0" >>/etc/fstab
-        mount /opt
-    }
-}
-
 apt-get update
+apt-get install -y software-properties-common curl gnupg lsb-release
+
 sed -i -e "s/.*PermitRootLogin .*/PermitRootLogin yes/" /etc/ssh/sshd_config &>/dev/null
 sed -i -e 's/.*DefaultTimeoutStopSec=.*/DefaultTimeoutStopSec=5s/' /etc/systemd/system.conf &>/dev/null
 systemctl restart ssh &>/dev/null
@@ -59,7 +51,10 @@ apt-get install -y ifupdown unzip &>/dev/null
 echo -e "${GREEN}Instalando compilador e dependências de build...${NO_COLOR}"
 apt-get install -y gcc g++ make build-essential autoconf bison re2c \
     libxml2-dev libssl-dev libcurl4-openssl-dev libjpeg-dev libpng-dev libonig-dev \
-    libzip-dev libsqlite3-dev libmysqlclient-dev libfreetype6-dev pkg-config wget unzip &>/dev/null
+    libzip-dev libsqlite3-dev libmysqlclient-dev libfreetype6-dev pkg-config wget unzip &>/dev/null || {
+    echo -e "${RED}Erro ao instalar dependências de compilação${NO_COLOR}"
+    exit 1
+}
 
 echo -e "${GREEN}Compilando PHP 7.2 a partir do código-fonte...${NO_COLOR}"
 cd /usr/local/src
@@ -75,7 +70,6 @@ cd php-7.2.34
   --with-mysqli \
   --with-pdo-mysql \
   --with-zlib \
-  --with-zip \
   --with-gd \
   --with-jpeg-dir=/usr/lib \
   --with-png-dir=/usr/lib \
@@ -87,12 +81,14 @@ cd php-7.2.34
   --with-xmlrpc \
   --with-gettext \
   --enable-sockets \
-  --enable-sysvshm
+  --enable-sysvshm || {
+    echo -e "${RED}Erro ao configurar o PHP 7.2${NO_COLOR}"
+    exit 1
+}
 
-make -j"$(nproc)"
-make install
+make -j"$(nproc)" || { echo -e "${RED}Erro ao compilar o PHP${NO_COLOR}"; exit 1; }
+make install || { echo -e "${RED}Erro ao instalar o PHP${NO_COLOR}"; exit 1; }
 
-echo -e "${GREEN}Criando symlinks para php7.2...${NO_COLOR}"
 rm -f /usr/bin/php /usr/bin/php7.2
 ln -s /usr/local/php7.2/bin/php /usr/bin/php7.2
 ln -s /usr/local/php7.2/bin/php /usr/bin/php
