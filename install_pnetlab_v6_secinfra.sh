@@ -56,6 +56,9 @@ apt-get install -y build-essential autoconf bison re2c gcc g++ make \
     exit 1
 }
 
+hash gcc 2>/dev/null || { echo -e "${RED}gcc ainda não está disponível no PATH${NO_COLOR}"; exit 1; }
+hash make 2>/dev/null || { echo -e "${RED}make ainda não está disponível no PATH${NO_COLOR}"; exit 1; }
+
 export PATH=$PATH:/usr/local/bin:/usr/local/php7.2/bin
 
 echo -e "${GREEN}Compilando PHP 7.2 a partir do código-fonte...${NO_COLOR}"
@@ -96,50 +99,3 @@ ln -s /usr/local/php7.2/bin/php /usr/bin/php7.2
 ln -s /usr/local/php7.2/bin/php /usr/bin/php
 
 php -v || echo -e "${RED}Erro: PHP 7.2 nao foi instalado corretamente${NO_COLOR}"
-
-apt-get purge -y docker.io containerd runc php7.4* php8* -q &>/dev/null
-
-cd /tmp
-rm -rf /tmp/* &>/dev/null
-
-wget -q --content-disposition $URL_KERNEL && unzip $KERNEL && dpkg -i pnetlab_kernel/*.deb
-wget -q --content-disposition $URL_PRE_DOCKER && unzip pre-docker.zip && dpkg -i pre-docker/*.deb
-wget -q --content-disposition $URL_PNET_TPM && unzip swtpm-focal.zip && dpkg -i swtpm-focal/*.deb
-wget -q --content-disposition $URL_PNET_DOCKER && dpkg -i pnetlab-docker_*.deb
-wget -q --content-disposition $URL_PNET_SCHEMA && dpkg -i pnetlab-schema_*.deb
-wget -q --content-disposition $URL_PNET_GUACAMOLE && dpkg -i pnetlab-guacamole_*.deb
-wget -q --content-disposition $URL_PNET_VPC && dpkg -i pnetlab-vpcs_*.deb
-wget -q --content-disposition $URL_PNET_DYNAMIPS && dpkg -i pnetlab-dynamips_*.deb
-wget -q --content-disposition $URL_PNET_WIRESHARK && dpkg -i pnetlab-wireshark_*.deb
-wget -q --content-disposition $URL_PNET_QEMU && dpkg -i pnetlab-qemu_*.deb
-wget -q --content-disposition $URL_PNET_PNETLAB && dpkg -i pnetlab_6*.deb
-
-fgrep "127.0.1.1 pnetlab.example.com pnetlab" /etc/hosts || echo 127.0.2.1 pnetlab.example.com pnetlab >>/etc/hosts
-echo pnetlab >/etc/hostname
-
-# Ajustes para GCP e Azure
-
-dmidecode -t bios | grep -q Google && {
-    cd /sys/class/net/
-    for i in ens*; do echo 'SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", ATTR{address}=="'$(cat $i/address)'", ATTR{type}=="1", KERNEL=="ens*", NAME="'$i'"'; done >/etc/udev/rules.d/70-persistent-net.rules
-    sed -i -e 's/NAME="ens.*/NAME="eth0"/' /etc/udev/rules.d/70-persistent-net.rules
-    sed -i -e 's/ens4/eth0/' /etc/netplan/50-cloud-init.yaml
-    sed -i -e 's/PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
-    apt-mark hold linux-image-gcp
-    mv /boot/vmlinuz-*gcp /root
-    update-grub2
-}
-
-uname -a | grep -q -- "-azure " && {
-    apt update
-    echo "options kvm_intel nested=1 vmentry_l1d_flush=never" >/etc/modprobe.d/qemu-system-x86.conf
-    sed -i -e 's/PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
-}
-
-apt --fix-broken install -y
-apt autoremove -y -q
-apt autoclean -y -q
-
-echo -e "${GREEN}Upgrade has been done successfully${NO_COLOR}"
-echo -e "${GREEN}Default credentials: username=root password=pnet Make sure reboot if you install pnetlab first time${NO_COLOR}"
-php -v
