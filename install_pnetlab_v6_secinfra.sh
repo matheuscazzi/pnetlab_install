@@ -49,12 +49,14 @@ rm /var/lib/dpkg/lock* &>/dev/null
 apt-get install -y ifupdown unzip &>/dev/null
 
 echo -e "${GREEN}Instalando compilador e dependências de build...${NO_COLOR}"
-apt-get install -y gcc g++ make build-essential autoconf bison re2c \
+apt-get install -y build-essential autoconf bison re2c gcc g++ make \
     libxml2-dev libssl-dev libcurl4-openssl-dev libjpeg-dev libpng-dev libonig-dev \
-    libzip-dev libsqlite3-dev libmysqlclient-dev libfreetype6-dev pkg-config wget unzip &>/dev/null || {
+    libzip-dev libsqlite3-dev libmysqlclient-dev libfreetype6-dev pkg-config wget unzip || {
     echo -e "${RED}Erro ao instalar dependências de compilação${NO_COLOR}"
     exit 1
 }
+
+export PATH=$PATH:/usr/local/bin:/usr/local/php7.2/bin
 
 echo -e "${GREEN}Compilando PHP 7.2 a partir do código-fonte...${NO_COLOR}"
 cd /usr/local/src
